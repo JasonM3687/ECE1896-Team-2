@@ -1,6 +1,7 @@
-# ECE1896-Team-2
-ML Inference Device for Handwritten Digits    
+ML Inference Device for Handwritten Digits 
+
 Project Description:  A device that  records an image of a handwritten number,  inferences  the number using  ML trained by MNIST database, and visualizes the result on a 7-segment LED display.  
+
 Project Specifications: 
  The hardware includes an image sensor, a microprocessor, a micro-SD card, and  a 7-segment LED display.  
  The device reshapes a taken image to a format matched with a MNIST image. As  the initial step, the image includes only one black handwritten number with white  background.  As  an  optional  specification,  the  device  extracts  multiple  output  images from a single input image with multiple numbers with background noise.   
