@@ -1,3 +1,5 @@
+ECE 1896 (Senior Design)
+
 ML Inference Device for Handwritten Digits 
 
 Project Description:  A device that  records an image of a handwritten number,  inferences  the number using  ML trained by MNIST database, and visualizes the result on a 7-segment LED display.  
