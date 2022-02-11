@@ -36,7 +36,7 @@ def mnist_resize(image):
     return image_mnist    
 
 if __name__ == '__main__':
-    #Gathering Mnist image data
+    #Gathering mnist data
     home = expanduser("~")+'/Desktop/image_samples/'
     mnist = MNIST(home)
     
