@@ -40,7 +40,7 @@ if __name__ == '__main__':
     home = expanduser("~")+'/Desktop/image_samples/'
     mnist = MNIST(home)
     
-    #Converting a random Mnist image to a 28x28 image and displaying
+    #Converting random mnist array data to a 28x28 image and displaying
     images, labels = mnist.load_testing()
     #Choosing a random index
     index = random.randrange(0, len(images))
