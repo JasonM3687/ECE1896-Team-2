@@ -1,0 +1,26 @@
+
+Raspberry Pi Connections
+LED ---> PIN38
+BUTTON ---> PIN40
+LCD
+  VCC---> PIN04
+  GND---> PIN06
+  SCL---> PIN05
+  SDA---> PIN03
+  
+Arduino Connections
+Serial Communication through Raspberry Pi USB
+SPEAKER
+  GND--->GND
+  POWER---> PIN 9
+MICRO SD CARD READER
+  CS---> PIN 4
+  SCK---> PIN 13
+  MOSI---> Pin 11
+  MISO---> PIN 12
+  VCC
+  GND
+    
+    
+    
+  
