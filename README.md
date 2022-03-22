@@ -12,3 +12,7 @@ Project Specifications:
  The  hardware  is  programed  to  compute  the  neural  network.  The  inference  accuracy should be higher than 90% for the test set. As an optional specification,  the neural network is trained in the developed hardware.   
  The hardware takes a picture of a handwritten digit and  classify it among 0  – 9.  For  10  reasonable  handwritten  digits,  it  inferences  at  least  8  correct  results.  If  necessary, a neural network should be revised.   
  In  a  real-time  demo  system,  a  user  writes  a  number  and  clicks  a  button  on  a  computer monitor, and then the monitor shows a programmed neural network and  images of all the layers including reshaped input images, probability of all the digit  candidates,  and  an  inference  result.  Also,  display  the  inference  result  on  the  7- segment LED display on the designed hardware. All the results should come from  the developed hardware instead of running the neural network in a computer.
+
+
+PCB Board Parameters
+2.25 inches x 3.635 inches
