@@ -32,6 +32,7 @@ camera.rotation = 0
 lcd.setRGB(0,0,0)
 #########################################################
 
+# Method for sending digit inferences to arduino lcd
 def lcd_digits():
     digits = []
     with open('Inference.txt') as my_file:
@@ -40,10 +41,13 @@ def lcd_digits():
     parsed_digits = str(parsed_digits).replace('[','')
     parsed_digits = str(parsed_digits).replace(']','')
     
+    lcd.setRGB(0,0,255)
     lcd.printout(str(parsed_digits))
+    sleep(1)
     
-    #for i in range(len(parsed_digits)):
-        #ser.write(str(parsed_digits[i]).encode('utf-8'))
+    
+    for i in range(len(parsed_digits)):
+        ser.write(str(parsed_digits[i]).encode('utf-8'))
         
         
 def take_picture_switch():
@@ -52,19 +56,20 @@ def take_picture_switch():
         if GPIO.input(40) == GPIO.HIGH:
             lcd.setRGB(0,0,255)
             print("Taking Picture")
+            lcd.clear()
             lcd.printout("Picture Taken   ")
             GPIO.output(38, GPIO.HIGH)
             camera.capture('/home/pi/Desktop/Pi_Pics/image.jpg')
             camera.stop_preview()
             x = 1
-            sleep(1)
+            #sleep(1)
             lcd.clear()
-            sleep(1)
+            #sleep(1)
 
         else:
             GPIO.output(38, GPIO.LOW)
-            lcd.clear()
-            lcd.setRGB(0,0,0)
+        
+            #lcd.setRGB(0,0,0)
     
 # Take picture with raspberry pi
 def take_picture():
@@ -77,7 +82,7 @@ def take_picture():
     
     return image
 
-def purge_directory(directory):
+def purge_directory(directory, choice):
     # Read the hand written mnist digits directory and count the number of images
     files = 0
     for path in os.listdir(directory):
@@ -85,11 +90,17 @@ def purge_directory(directory):
         if os.path.isfile(os.path.join(directory, path)):
             files += 1
      # Purge mnist image output directory
-    for y in range(files):
-        if (y+1 <= files ):
-            os.remove(f"{directory}/Hand_Written_Digit_" + str(y+1) + ".jpg")      
-    print(str(files) + ' old images removed from mnist image directory')
+    if (choice == 1):
+        for y in range(files):
+            if (y+1 <= files ):
+                os.remove(f"{directory}/Hand_Written_Digit_" + str(y+1) + ".jpg")      
+        print(str(files) + ' old images removed from mnist image directory')
     
+    elif (choice == 2):
+        for y in range(files):
+            if (y+1 <= files ):
+                os.remove(f"{directory}/image" + str(y+1) + ".jpg")      
+        print(str(files) + ' old images removed from CNN image directory')
     return None
 
 # Image padding function for use after cropping digits
@@ -119,6 +130,7 @@ def loopit(x):
 
 # Machine learning algorithm
 def inferencing(number_of_digits):
+    purge_directory("/home/pi/Desktop/CNNimages" , 2)
     numArray = np.zeros(number_of_digits+1);
     percentArray = np.zeros((number_of_digits+1)*10);
     
@@ -127,7 +139,7 @@ def inferencing(number_of_digits):
         
         #img2 = img.read().split('\t')
         array_image = np.asarray(img)
-        array_image = cv2.blur(array_image, (3,3))
+        array_image = cv2.blur(array_image, (2,2))
         cv2.imwrite('Blurred_Image.jpg' ,array_image)
             
         arrayimg = array_image.astype(np.float)
@@ -144,7 +156,7 @@ def inferencing(number_of_digits):
         with open("w2.dat") as file_name:
             w2 = np.loadtxt(file_name, delimiter=",")
             
-        print('File done')
+        print('Inference:')
         
         with open("w3.dat") as file_name:
             w3 = np.loadtxt(file_name, delimiter=",")
@@ -186,23 +198,54 @@ def inferencing(number_of_digits):
         num = 0
         
         #loop through
-        for i in range(0, 10):
+        for i in range(10):
             if (out[i] > big):
                 num = i - 1
                 big = out[i]
         
-        numArray[k] = int(num + 1);
+        
+        numArray[k] =  int(num + 1);
+        
+        imagematrix = pixelArray
+        
+        #Weighted images
+        for i in range(79):
+            imagematrix = np.column_stack((imagematrix, pixelArray))
             
-        print((num + 1))
+        weightedimg = np.empty(shape = (784,80))
+        weightedimg = np.multiply(imagematrix, (np.transpose(w2)))
+        
+        norm_data = np.empty(shape = (784,80))
+        
+        for i in range(80):
+            norm_data[:, i] = np.subtract(weightedimg[:, i], np.min(weightedimg[:, i])) / np.subtract(np.max(weightedimg[:, i]), np.min(weightedimg[:, i]))
+            
+        addedcolumns = norm_data.sum(axis = 0);
+        
+        ind = np.argpartition(addedcolumns, -5)[-5:]
+        
+        norm_data = np.multiply(norm_data, 255)
+        
+        saving_path = '/home/pi/Desktop/CNNimages'
+        
+        if(k == 0):
+            for i in range(5):
+                reim = np.reshape((norm_data[:,(ind[i])]), (28,28))
+                im = Image.fromarray(reim)
+                im = im.convert("L")
+                im.save(f"{saving_path}/image" + str(i+1) + ".jpg")
+            
     open('Percent.txt', 'w').close()
     with open('Percent.txt', 'w') as f:
         for i in range(len(percentArray)):
             f.write(str(round(percentArray[i], 2)))
             f.write('\n')
-            
+    
+        
+    
     open('Inference.txt', 'w').close()
     with open('Inference.txt', 'w') as f:
-        for i in range(0, len(numArray)):   
+        for i in range(len(numArray)):   
             f.write(str(int(numArray[i])))
             f.write('\n')
             
@@ -218,11 +261,11 @@ def find_digits(image):
     number_of_digits = 0
     
     # Clean up output directory
-    purge_directory(saving_path)
+    purge_directory(saving_path,1)
     
     # Resizing image for better thresholding results
     image = cv2.resize(image,(500,500))
-    
+   
     # Create input image copy
     imageCopy = image.copy()
 
@@ -230,23 +273,38 @@ def find_digits(image):
     grayscaleImage = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
     
     # Obtain binary image through adaptive thresholding, values may vary depending on lighting
-    ret, binaryImage = cv2.threshold(grayscaleImage,48, 255, cv2.THRESH_BINARY_INV) #48 for real1.jpg
+    ret, binaryImage = cv2.threshold(grayscaleImage,60, 255, cv2.THRESH_BINARY_INV) #65-90 best
+    
+    # Convert from numpy to pil
+    image_pil_crop = Image.fromarray(binaryImage)
+    
+    #Crop image slightly to compensate for leg/camera positioning on enclosure
+    im_pil_crop = image_pil_crop.crop((25, 25, 475, 475))
+    
+    # Convert from numpy to pil
+    image_box = Image.fromarray(image)
+    
+    # Crop image for correct bounding box positioning when drawing
+    image_box = image_box.crop((25,25,475,475))
+    image_box = np.array(image_box)
+    image_crop_num = np.array(im_pil_crop)
+    binaryImage_crop = image_crop_num
     
     # Save binary image 
-    cv2.imwrite(os.path.join(binary_image_path , 'Binary_Image.jpg'), binaryImage)
+    cv2.imwrite(os.path.join(binary_image_path , 'Binary_Image.jpg'), binaryImage_crop)
     
     # Obtain binary image contours
-    conts, hier = cv2.findContours(binaryImage.copy(), cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
+    conts, hier = cv2.findContours(binaryImage_crop.copy(), cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
     digits = [cv2.boundingRect(cont) for cont in conts]
     j = 0
     for j,digit in enumerate(digits):
         # Draw bounding boxes around each digit on the original image and save it
-        cv2.rectangle(image, (digits[j][0] , digits[j][1]), (digits[j][0] + digits[j][2], digits[j][1] + digits[j][3]), (0, 255, 0), 3)
-        cv2.imwrite(os.path.join(boxed_digits_path ,'Boxed_Digits.jpg'), image)
+        cv2.rectangle(image_box, (digits[j][0] , digits[j][1]), (digits[j][0] + digits[j][2], digits[j][1] + digits[j][3]), (0, 255, 0), 3)
+        cv2.imwrite(os.path.join(boxed_digits_path ,'Boxed_Digits.jpg'), image_box)
         for i in range(len(digits)):
             # Get the roi for each bounding rectangle:
             x, y, w, h = digits[i]
-            croppedImg = binaryImage[y:y + h, x:x + w]
+            croppedImg = binaryImage_crop[y:y + h, x:x + w]
             # Convert from numpy array to PIL
             image_mnist_pil = Image.fromarray(croppedImg)
             # Pad image with 0s 
@@ -269,14 +327,35 @@ def find_digits(image):
     
         
 if __name__ == '__main__':
-    # Arduino serial communication set up
-    #ser = serial.Serial('/dev/ttyACM0', 9600, timeout=1)
-    #ser.reset_input_buffer()
-    
-    
-    #take_picture_switch()
-    image = cv2.imread('/home/pi/Desktop/Pi_Pics/image.jpg')
-    #image = take_picture()
-    digits = find_digits(image)
-    inferencing(digits)
-    lcd_digits()
+    while (1):
+        # Arduino serial communication set up
+        ser = serial.Serial('/dev/ttyACM0', 9600, timeout=1)
+        ser.reset_input_buffer()
+        
+        take_picture_switch()
+        start_time = time.time()
+        image = cv2.imread('/home/pi/Desktop/Pi_Pics/image.jpg')
+        #image = take_picture()
+        digits = find_digits(image)
+        cv_time = time.time() - start_time
+        print("Computer Vision finished in: " + str(cv_time) + " Seconds")
+        inferencing(digits)
+        ml_time = time.time() - start_time
+        print("Machine Learning finished in: " + str(time.time() - start_time) + " Seconds")
+        lcd_digits()
+        total_time = time.time() - start_time
+        print("Total elapsed time: " + str(total_time) + " Seconds")
+        
+        # Write timing values
+        open('Time.txt', 'w').close()
+        with open('Time.txt', 'w') as f:
+            f.write(str(cv_time))
+            f.write('\n')
+            f.write(str(ml_time))
+            f.write('\n')
+            f.write(str(total_time))
+            f.write('\n')
+        print("Done...waiting for another picture")
+        start_time = 0.0
+            
+        
